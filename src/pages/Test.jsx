@@ -156,7 +156,7 @@ const Test = () => {
 
     // Enviar datos al backend (opcional)
     try {
-      await fetch('http://127.0.0.1:8000/api/postulantes/guardar-test/', {
+      await fetch('https://test-rol.onrender.com/api/postulantes/guardar-test/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

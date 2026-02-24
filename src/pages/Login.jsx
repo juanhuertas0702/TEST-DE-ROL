@@ -27,7 +27,7 @@ const Login = () => {
     setError('');
     
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/postulantes/login/', {
+      const response = await fetch('https://test-rol.onrender.com/api/postulantes/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
