@@ -4,8 +4,10 @@ import { useNavigate } from 'react-router-dom';
 const Login = () => {
   const navigate = useNavigate();
   
+  const [esAdmin, setEsAdmin] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
+    id_usuario: '',
     contrasena: ''
   });
   const [loginSuccess, setLoginSuccess] = useState(false);
@@ -21,21 +23,35 @@ const Login = () => {
     setError('');
   };
 
+  const handleToggleAdmin = () => {
+    setEsAdmin(!esAdmin);
+    setFormData({ nombre: '', id_usuario: '', contrasena: '' });
+    setError('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
+      const requestBody = {
+        nombre: formData.nombre,
+        es_admin: esAdmin
+      };
+
+      if (esAdmin) {
+        requestBody.contrasena = formData.contrasena;
+      } else {
+        requestBody.id_usuario = formData.id_usuario;
+      }
+
       const response = await fetch('https://test-rol.onrender.com/api/postulantes/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          contrasena: formData.contrasena
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -61,7 +77,11 @@ const Login = () => {
   };
 
   const handleStartTest = () => {
-    navigate('/test', { state: { userData } });
+    if (userData.es_admin) {
+      navigate('/admin', { state: { userData } });
+    } else {
+      navigate('/test', { state: { userData } });
+    }
   };
 
   if (loginSuccess) {
@@ -73,20 +93,20 @@ const Login = () => {
             <h2 style={styles.successTitle}>¡Bienvenido!</h2>
             <p style={styles.successMessage}>
               ¡Hola <strong>{userData.nombre}</strong>!<br/>
-              Login exitoso. Ahora puedes iniciar el test psicotécnico.
+              {userData.es_admin ? 'Acceso como Administrador' : 'Login exitoso. Ahora puedes iniciar el test psicotécnico.'}
             </p>
             <button 
               onClick={handleStartTest}
               style={styles.testButton}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#1e7e34'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#27ae60'}
+              onMouseOver={(e) => e.target.style.backgroundColor = userData.es_admin ? '#5a3d9f' : '#1e7e34'}
+              onMouseOut={(e) => e.target.style.backgroundColor = userData.es_admin ? '#667eea' : '#27ae60'}
             >
-              🚀 Iniciar Test
+              {userData.es_admin ? '⚙️ Panel Admin' : '🚀 Iniciar Test'}
             </button>
             <button 
               onClick={() => {
                 setLoginSuccess(false);
-                setFormData({ nombre: '', contrasena: '' });
+                setFormData({ nombre: '', id_usuario: '', contrasena: '' });
               }}
               style={styles.backButton}
             >
@@ -102,9 +122,23 @@ const Login = () => {
     <div style={styles.container}>
       <div style={styles.formCard}>
         <div style={styles.header}>
-          <div style={styles.headerIcon}>🔐</div>
+          <div style={styles.headerIcon}>{esAdmin ? '👮' : '🔐'}</div>
           <h2 style={styles.title}>Iniciar Sesión</h2>
-          <p style={styles.subtitle}>Accede a tu evaluación psicotécnica</p>
+          <p style={styles.subtitle}>{esAdmin ? 'Acceso de Administrador' : 'Accede a tu evaluación psicotécnica'}</p>
+        </div>
+
+        {/* Toggle Admin/Normal */}
+        <div style={styles.toggleContainer}>
+          <span style={{...styles.toggleLabel, opacity: esAdmin ? 0.5 : 1}}>👤 Usuario Normal</span>
+          <button
+            type="button"
+            style={{...styles.toggle, backgroundColor: esAdmin ? '#667eea' : '#dfe6e9'}}
+            onClick={handleToggleAdmin}
+            disabled={loading}
+          >
+            <div style={{...styles.toggleDot, left: esAdmin ? '50%' : '2px'}}></div>
+          </button>
+          <span style={{...styles.toggleLabel, opacity: esAdmin ? 1 : 0.5}}>👮 Administrador</span>
         </div>
         
         {error && (
@@ -128,28 +162,48 @@ const Login = () => {
               onChange={handleChange}
               style={styles.input}
               required
-              placeholder="Ej. Juan Pérez"
+              placeholder={esAdmin ? "Ej. María" : "Ej. Juan"}
               disabled={loading}
             />
           </div>
           
-          <div style={styles.inputGroup}>
-            <label htmlFor="contrasena" style={styles.label}>
-              <span style={styles.labelIcon}>🔑</span>
-              Contraseña
-            </label>
-            <input
-              type="password"
-              id="contrasena"
-              name="contrasena"
-              value={formData.contrasena}
-              onChange={handleChange}
-              style={styles.input}
-              required
-              placeholder="Ingresa tu contraseña"
-              disabled={loading}
-            />
-          </div>
+          {esAdmin ? (
+            <div style={styles.inputGroup}>
+              <label htmlFor="contrasena" style={styles.label}>
+                <span style={styles.labelIcon}>🔑</span>
+                Contraseña
+              </label>
+              <input
+                type="password"
+                id="contrasena"
+                name="contrasena"
+                value={formData.contrasena}
+                onChange={handleChange}
+                style={styles.input}
+                required
+                placeholder="Ingresa tu contraseña"
+                disabled={loading}
+              />
+            </div>
+          ) : (
+            <div style={styles.inputGroup}>
+              <label htmlFor="id_usuario" style={styles.label}>
+                <span style={styles.labelIcon}>🆔</span>
+                ID Usuario
+              </label>
+              <input
+                type="text"
+                id="id_usuario"
+                name="id_usuario"
+                value={formData.id_usuario}
+                onChange={handleChange}
+                style={styles.input}
+                required
+                placeholder="Ej. 12345"
+                disabled={loading}
+              />
+            </div>
+          )}
           
           <button 
             type="submit" 
@@ -162,9 +216,18 @@ const Login = () => {
 
         <div style={styles.divider}></div>
         
-        <p style={styles.registerText}>
-          ¿No tienes cuenta? <a href="/registro" style={styles.registerLink}>Regístrate aquí</a>
-        </p>
+        <div style={styles.credentialsContainer}>
+          <div style={styles.credentialBox}>
+            <h4 style={styles.credentialTitle}>👤 Usuario Normal</h4>
+            <p style={styles.credentialText}>Nombre: <strong>Juan</strong></p>
+            <p style={styles.credentialText}>ID: <strong>12345</strong></p>
+          </div>
+          <div style={styles.credentialBox}>
+            <h4 style={styles.credentialTitle}>👮 Administrador</h4>
+            <p style={styles.credentialText}>Usuario: <strong>María</strong></p>
+            <p style={styles.credentialText}>Contraseña: <strong>12345</strong></p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -188,12 +251,12 @@ const styles = {
     borderRadius: '20px',
     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
     width: '100%',
-    maxWidth: '450px',
+    maxWidth: '500px',
     color: '#2d3436',
   },
   header: {
     textAlign: 'center',
-    marginBottom: '2.5rem',
+    marginBottom: '2rem',
     borderBottom: '2px solid #667eea',
     paddingBottom: '2rem',
   },
@@ -214,6 +277,43 @@ const styles = {
     color: '#636e72',
     marginBottom: '0',
     fontSize: '1rem',
+  },
+  toggleContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '1rem',
+    marginBottom: '2rem',
+    padding: '1rem',
+    backgroundColor: '#f0f3ff',
+    borderRadius: '10px',
+    border: '2px solid #667eea',
+  },
+  toggleLabel: {
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    color: '#2d3436',
+    transition: 'opacity 0.3s ease-in-out',
+  },
+  toggle: {
+    position: 'relative',
+    width: '60px',
+    height: '32px',
+    borderRadius: '16px',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease-in-out',
+    backgroundColor: '#dfe6e9',
+  },
+  toggleDot: {
+    position: 'absolute',
+    top: '2px',
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: 'white',
+    transition: 'left 0.3s ease-in-out',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
   },
   form: {
     display: 'flex',
@@ -248,7 +348,7 @@ const styles = {
     fontFamily: 'inherit',
   },
   button: {
-    marginTop: '1.5rem',
+    marginTop: '1rem',
     padding: '14px',
     backgroundColor: '#667eea',
     color: 'white',
@@ -281,16 +381,27 @@ const styles = {
     backgroundColor: '#dfe6e9',
     margin: '2rem 0',
   },
-  registerText: {
-    textAlign: 'center',
-    fontSize: '0.95rem',
-    color: '#636e72',
+  credentialsContainer: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '1rem',
   },
-  registerLink: {
-    color: '#667eea',
+  credentialBox: {
+    backgroundColor: '#f8f9fa',
+    padding: '1rem',
+    borderRadius: '8px',
+    border: '1px solid #dfe6e9',
+  },
+  credentialTitle: {
+    margin: '0 0 0.8rem 0',
+    fontSize: '0.9rem',
     fontWeight: '700',
-    textDecoration: 'none',
-    transition: 'color 0.3s ease-in-out',
+    color: '#667eea',
+  },
+  credentialText: {
+    margin: '0.4rem 0',
+    fontSize: '0.85rem',
+    color: '#636e72',
   },
   successContainer: {
     textAlign: 'center',

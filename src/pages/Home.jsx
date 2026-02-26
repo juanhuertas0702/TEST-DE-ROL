@@ -29,11 +29,8 @@ const Home = () => {
           <div style={styles.ctaButtons}>
             {!isLoggedIn ? (
               <>
-                <Link to="/registro" style={styles.ctaPrimary}>
-                  Comenzar Ahora ✨
-                </Link>
-                <Link to="/login" style={styles.ctaSecondary}>
-                  Ya tengo cuenta 🔐
+                <Link to="/login" style={styles.ctaPrimary}>
+                  Iniciar Sesión 🔐
                 </Link>
               </>
             ) : (

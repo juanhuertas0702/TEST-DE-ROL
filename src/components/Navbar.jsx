@@ -108,6 +108,17 @@ const Navbar = () => {
                 >
                   <span>🚀</span> Continuar Test
                 </Link>
+                {userData.es_admin && (
+                  <>
+                    <Link 
+                      to="/admin"
+                      style={styles.dropdownItem}
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <span>⚙️</span> Panel Admin
+                    </Link>
+                  </>
+                )}
                 <div style={styles.dropdownDivider}></div>
                 <button
                   onClick={handleLogout}
@@ -119,7 +130,7 @@ const Navbar = () => {
             )}
           </div>
         ) : (
-          // Usuario no logueado - Mostrar botones de login/registro
+          // Usuario no logueado - Mostrar botón de login
           <>
             <Link 
               to="/login"
@@ -131,17 +142,6 @@ const Navbar = () => {
               onMouseLeave={() => setActiveNavItem('')}
             >
               🔐 Iniciar Sesión
-            </Link>
-            <Link 
-              to="/registro"
-              style={{
-                ...styles.btnRegister,
-                transform: activeNavItem === 'register' ? 'scale(1.05)' : 'scale(1)'
-              }}
-              onMouseEnter={() => setActiveNavItem('register')}
-              onMouseLeave={() => setActiveNavItem('')}
-            >
-              ✨ Registrarse
             </Link>
           </>
         )}
