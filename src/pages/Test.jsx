@@ -34,12 +34,31 @@ const Test = () => {
     
     if (user) {
       setUserData(user);
-      setLoading(false);
+      verifyIfAlreadyAnswered(user.postulante_id);
     } else {
       // Si no hay sesión, redirigir a login
       navigate('/login');
     }
   }, [navigate, location]);
+
+  const verifyIfAlreadyAnswered = async (postulanteId) => {
+    try {
+      const response = await fetch(`https://test-rol.onrender.com/api/postulantes/verify-test/?postulante_id=${postulanteId}`);
+      const data = await response.json();
+      
+      if (data.ya_respondio) {
+        setTestResults({
+          yaRespondio: true,
+          fechaPrueba: data.fecha_prueba
+        });
+        setTestCompleted(true);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error verificando test:', error);
+      setLoading(false);
+    }
+  };
 
   // Convertir respuesta (1-10) a puntos (1-5)
   const convertResponseToScore = (response) => {
@@ -50,10 +69,13 @@ const Test = () => {
     return 5;
   };
 
-  // Calcular puntuación por categoría
+  // Calcular puntuación por categoría (excluyendo la primera pregunta)
   const calculateScores = (responsesData) => {
     const scores = { A: 0, B: 0, C: 0, D: 0 };
     responsesData.forEach((response, index) => {
+      // Saltar la primera pregunta (índice 0) porque es de ejemplo
+      if (index === 0) return;
+      
       const letter = questionLetters[index];
       const score = convertResponseToScore(response);
       scores[letter] += score;
@@ -145,16 +167,13 @@ const Test = () => {
     const scores = calculateScores(responses);
     const { role, scores: finalScores } = determineRole(scores);
     
-    // Guardar resultados
+    // Guardar resultados (sin mostrar detalles)
     setTestResults({
-      role,
-      scores: finalScores,
-      roleName: roleMap[role].name,
-      rolDescription: roleMap[role].descripcion,
+      exito: true,
       timestamp: new Date().toLocaleString('es-ES')
     });
 
-    // Enviar datos al backend (opcional)
+    // Enviar datos al backend
     try {
       await fetch('https://test-rol.onrender.com/api/postulantes/guardar-test/', {
         method: 'POST',
@@ -176,52 +195,54 @@ const Test = () => {
   };
 
   if (testCompleted && testResults) {
+    // Si ya había respondido antes
+    if (testResults.yaRespondio) {
+      return (
+        <div style={styles.container}>
+          <div style={styles.resultsCard}>
+            <div style={styles.resultsHeader}>
+              <div style={styles.resultsIcon}>✓</div>
+              <h2 style={styles.resultsTitle}>Ya has respondido el test</h2>
+              <p style={styles.resultsGreeting}><strong>{userData.nombre}</strong></p>
+            </div>
+
+            <div style={styles.infoBox}>
+              <p style={styles.infoText}>
+                Ya habías completado este test con anterioridad. 
+                <br /><br />
+                <strong>Fecha de realización:</strong> {testResults.fechaPrueba}
+              </p>
+            </div>
+
+            <div style={styles.actionButtons}>
+              <button 
+                onClick={() => navigate('/')}
+                style={styles.homeButton}
+              >
+                ← Volver al Inicio
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Si acaba de responder
     return (
       <div style={styles.container}>
         <div style={styles.resultsCard}>
           <div style={styles.resultsHeader}>
-            <div style={styles.resultsIcon}>🎯</div>
-            <h2 style={styles.resultsTitle}>¡Test Completado!</h2>
-            <p style={styles.resultsGreeting}>Gracias, <strong>{userData.nombre}</strong></p>
+            <div style={styles.resultsIcon}>🙏</div>
+            <h2 style={styles.resultsTitle}>¡Gracias por completar el test!</h2>
+            <p style={styles.resultsGreeting}><strong>{userData.nombre}</strong></p>
           </div>
 
-          {/* Rol Principal */}
-          <div style={styles.mainRoleContainer}>
-            <p style={styles.mainRoleLabel}>Tu Rol Principal:</p>
-            <div style={styles.rolBadge}>
-              <h3 style={styles.rolName}>{testResults.rolName}</h3>
-              <p style={styles.rolDescription}>{testResults.rolDescription}</p>
-            </div>
-          </div>
-
-          {/* Desglose de puntuación */}
-          <div style={styles.scoresContainer}>
-            <p style={styles.scoresTitle}>Desglose de Puntuación:</p>
-            <div style={styles.scoresGrid}>
-              {Object.entries(testResults.scores).map(([letter, score]) => {
-                const rolName = roleMap[letter].name;
-                return (
-                  <div 
-                    key={letter}
-                    style={{
-                      ...styles.scoreCard,
-                      ...(letter === testResults.role ? styles.scoreCardActive : {})
-                    }}
-                  >
-                    <p style={styles.scoreLetter}>{letter}</p>
-                    <p style={styles.scoreValue}>{score} pts</p>
-                    <p style={styles.scoreType}>{rolName}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Información adicional */}
           <div style={styles.infoBox}>
             <p style={styles.infoText}>
-              Tu perfil indica que tienes fortalezas como <strong>{testResults.rolName}</strong>. 
-              Esto significa que tu forma natural de trabajar y pensar se alinea con las características de este rol.
+              Tu respuesta ha sido registrada correctamente.
+              <br /><br />
+              Muy pronto recibirás los resultados de tu evaluación.
+              Aquí podrás ver tu perfil profesional y un análisis de tus fortalezas.
             </p>
           </div>
 
@@ -273,8 +294,22 @@ const Test = () => {
 
         {/* Pregunta actual */}
         <div style={styles.questionContainer}>
-          <h3 style={styles.questionNumber}>Pregunta #{currentQuestion + 1}</h3>
+          <div style={styles.questionHeaderContainer}>
+            <h3 style={styles.questionNumber}>Pregunta #{currentQuestion + 1}</h3>
+            {currentQuestion === 0 && (
+              <span style={styles.exampleBadge}>Pregunta de Ejemplo</span>
+            )}
+          </div>
           <p style={styles.questionText}>{questions[currentQuestion]}</p>
+
+          {currentQuestion === 0 && (
+            <div style={styles.exampleNote}>
+              <p style={styles.exampleNoteText}>
+                ℹ️ Esta pregunta es solo de ejemplo para entender cómo responder. 
+                <strong> No contará para tu evaluación final.</strong>
+              </p>
+            </div>
+          )}
 
           {/* Escala de calificación */}
           <div style={styles.ratingContainer}>
@@ -696,6 +731,36 @@ const styles = {
     color: '#ecf0f1',
     lineHeight: '1.6',
     margin: '0',
+  },
+  exampleBadge: {
+    display: 'inline-block',
+    backgroundColor: '#f39c12',
+    color: 'white',
+    padding: '0.4rem 0.8rem',
+    borderRadius: '5px',
+    fontSize: '0.75rem',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginLeft: '1rem',
+  },
+  questionHeaderContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+  },
+  exampleNote: {
+    backgroundColor: '#fff3cd',
+    border: '2px solid #f39c12',
+    borderRadius: '8px',
+    padding: '1rem',
+    marginTop: '1rem',
+    marginBottom: '1.5rem',
+  },
+  exampleNoteText: {
+    color: '#856404',
+    margin: '0',
+    fontSize: '0.95rem',
+    lineHeight: '1.5',
   },
   actionButtons: {
     display: 'flex',
