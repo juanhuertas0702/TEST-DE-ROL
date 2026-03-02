@@ -116,6 +116,36 @@ const Admin = () => {
     reader.readAsText(file);
   };
 
+  const generarDatosDePrueba = async () => {
+    if (!window.confirm('¿Generar 500 pruebas de ejemplo? Esto eliminará los datos actuales.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('https://test-rol.onrender.com/api/postulantes/admin/generar-datos/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-ID': userData.postulante_id
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`✅ Se generaron ${data.pruebas_creadas} pruebas de ejemplo exitosamente`);
+        // Recargar los tests
+        fetchTests(userData.postulante_id);
+        fetchStats(userData.postulante_id);
+      } else {
+        alert('Error al generar datos: ' + (data.error || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error de conexión al generar datos');
+    }
+  };
+
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString('es-ES', options);
@@ -157,6 +187,12 @@ const Admin = () => {
             style={{ display: 'none' }}
           />
         </label>
+        <button 
+          onClick={generarDatosDePrueba}
+          style={styles.testDataButton}
+        >
+          🧪 Generar 500 Datos de Prueba
+        </button>
       </div>
 
       {error && (
@@ -320,6 +356,17 @@ const styles = {
     transition: 'all 0.3s ease-in-out',
     fontSize: '1rem',
     display: 'inline-block',
+  },
+  testDataButton: {
+    padding: '12px 24px',
+    backgroundColor: '#e74c3c',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease-in-out',
+    fontSize: '1rem',
   },
   errorAlert: {
     backgroundColor: '#ffe5e5',
