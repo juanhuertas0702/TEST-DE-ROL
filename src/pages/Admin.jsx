@@ -8,6 +8,7 @@ const Admin = () => {
   const [error, setError] = useState('');
   const [userData, setUserData] = useState(null);
   const [stats, setStats] = useState({ A: 0, B: 0, C: 0, D: 0 });
+  const [selectedTest, setSelectedTest] = useState(null);
 
   // Verificar si el usuario es admin
   useEffect(() => {
@@ -214,7 +215,7 @@ const Admin = () => {
               <tr style={styles.tableHeader}>
                 <th style={styles.th}>ID</th>
                 <th style={styles.th}>Usuario</th>
-                <th style={styles.th}>Puntaje</th>
+                <th style={styles.th}>Rol</th>
                 <th style={styles.th}>Fecha</th>
                 <th style={styles.th}>Acciones</th>
               </tr>
@@ -227,13 +228,13 @@ const Admin = () => {
                     <span style={styles.userName}>{test.postulante_nombre || 'N/A'}</span>
                   </td>
                   <td style={styles.td}>
-                    <span style={styles.score}>{test.puntaje_total}</span>
+                    <span style={styles.role}>{test.rol_principal || 'N/A'}</span>
                   </td>
                   <td style={styles.td}>{formatDate(test.fecha_prueba)}</td>
                   <td style={styles.td}>
                     <button 
                       style={styles.viewButton}
-                      onClick={() => console.log('Ver detalles del test:', test)}
+                      onClick={() => setSelectedTest(test)}
                     >
                       👁️ Ver Detalles
                     </button>
@@ -301,6 +302,92 @@ const Admin = () => {
           <div style={styles.statLabel}>Puntaje Máximo</div>
         </div>
       </div>
+
+      {/* Modal de Detalles */}
+      {selectedTest && (
+        <div style={styles.modalOverlay} onClick={() => setSelectedTest(null)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Detalles del Test</h2>
+              <button 
+                style={styles.closeButton}
+                onClick={() => setSelectedTest(null)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <div style={styles.detailSection}>
+                <h3 style={styles.sectionLabel}>Información del Usuario</h3>
+                <div style={styles.detailRow}>
+                  <span style={styles.detailLabel}>Nombre:</span>
+                  <span style={styles.detailValue}>{selectedTest.postulante_nombre}</span>
+                </div>
+                <div style={styles.detailRow}>
+                  <span style={styles.detailLabel}>Fecha de Prueba:</span>
+                  <span style={styles.detailValue}>{formatDate(selectedTest.fecha_prueba)}</span>
+                </div>
+              </div>
+
+              <div style={styles.detailSection}>
+                <h3 style={styles.sectionLabel}>Resultados</h3>
+                <div style={styles.resultCard}>
+                  <div style={styles.puntajeTotalBox}>
+                    <span style={styles.puntajeTotalLabel}>Puntaje Total</span>
+                    <span style={styles.puntajeTotalValue}>{selectedTest.puntaje_total}</span>
+                  </div>
+                </div>
+
+                <div style={styles.scoresGrid}>
+                  {['A', 'B', 'C', 'D'].map((role) => {
+                    const roleNames = {
+                      'A': 'Clarificador',
+                      'B': 'Ideador',
+                      'C': 'Desarrollador',
+                      'D': 'Implementador'
+                    };
+                    const colors = {
+                      'A': '#667eea',
+                      'B': '#f093fb',
+                      'C': '#4facfe',
+                      'D': '#43e97b'
+                    };
+                    const score = selectedTest.scores?.[role] || 0;
+                    
+                    return (
+                      <div key={role} style={{...styles.scoreBox, borderColor: colors[role]}}>
+                        <div style={{color: colors[role], ...styles.scoreLetter}}>Rol {role}</div>
+                        <div style={styles.scoreBoxLabel}>{roleNames[role]}</div>
+                        <div style={{color: colors[role], ...styles.scoreBoxValue}}>{score}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={styles.detailRow}>
+                  <span style={styles.detailLabel}>Rol Principal:</span>
+                  <span style={{...styles.rolBadge, backgroundColor: {
+                    'A': '#667eea',
+                    'B': '#f093fb',
+                    'C': '#4facfe',
+                    'D': '#43e97b'
+                  }[selectedTest.rol_principal]}}>{selectedTest.rol_principal}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button 
+                style={styles.closeModalButton}
+                onClick={() => setSelectedTest(null)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -418,6 +505,16 @@ const styles = {
   userName: {
     fontWeight: '600',
     color: '#667eea',
+  },
+  role: {
+    backgroundColor: '#667eea',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '8px',
+    fontWeight: '700',
+    display: 'inline-block',
+    minWidth: '50px',
+    textAlign: 'center',
   },
   score: {
     backgroundColor: '#e8f5e9',
@@ -550,6 +647,171 @@ const styles = {
     fontSize: '1.2rem',
     color: '#667eea',
   },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    backdropFilter: 'blur(3px)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: '15px',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+    maxWidth: '600px',
+    width: '90%',
+    maxHeight: '80vh',
+    overflow: 'auto',
+    animation: 'slideIn 0.3s ease-in-out',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '2rem',
+    borderBottom: '2px solid #f0f0f0',
+    backgroundColor: '#f8f9fa',
+  },
+  modalTitle: {
+    margin: 0,
+    fontSize: '1.8rem',
+    fontWeight: '700',
+    color: '#2d3436',
+  },
+  closeButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    fontSize: '2rem',
+    cursor: 'pointer',
+    color: '#667eea',
+    fontWeight: '700',
+    padding: 0,
+    width: '40px',
+    height: '40px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '50%',
+    transition: 'all 0.2s',
+  },
+  modalBody: {
+    padding: '2rem',
+  },
+  detailSection: {
+    marginBottom: '2rem',
+  },
+  sectionLabel: {
+    fontSize: '1.2rem',
+    fontWeight: '700',
+    color: '#2d3436',
+    marginBottom: '1rem',
+    paddingBottom: '0.5rem',
+    borderBottom: '2px solid #667eea',
+  },
+  detailRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0.8rem 0',
+    borderBottom: '1px solid #f0f0f0',
+  },
+  detailLabel: {
+    fontWeight: '600',
+    color: '#636e72',
+    fontSize: '0.95rem',
+  },
+  detailValue: {
+    color: '#2d3436',
+    fontWeight: '600',
+    fontSize: '1rem',
+  },
+  resultCard: {
+    backgroundColor: '#f8f9fa',
+    padding: '1.5rem',
+    borderRadius: '10px',
+    marginBottom: '1.5rem',
+    textAlign: 'center',
+  },
+  puntajeTotalBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  puntajeTotalLabel: {
+    fontSize: '0.9rem',
+    color: '#636e72',
+    fontWeight: '600',
+    marginBottom: '0.5rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  puntajeTotalValue: {
+    fontSize: '3rem',
+    fontWeight: '700',
+    color: '#667eea',
+  },
+  scoresGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '1rem',
+    marginBottom: '1.5rem',
+  },
+  scoreBox: {
+    border: '3px solid',
+    borderRadius: '10px',
+    padding: '1.5rem',
+    textAlign: 'center',
+    backgroundColor: '#fafafa',
+    transition: 'all 0.3s',
+  },
+  scoreLetter: {
+    fontSize: '0.85rem',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    marginBottom: '0.3rem',
+  },
+  scoreBoxLabel: {
+    fontSize: '0.9rem',
+    color: '#636e72',
+    fontWeight: '600',
+    marginBottom: '0.8rem',
+  },
+  scoreBoxValue: {
+    fontSize: '2rem',
+    fontWeight: '700',
+  },
+  rolBadge: {
+    color: 'white',
+    padding: '0.5rem 1.2rem',
+    borderRadius: '8px',
+    fontWeight: '700',
+    display: 'inline-block',
+  },
+  modalFooter: {
+    padding: '2rem',
+    borderTop: '2px solid #f0f0f0',
+    backgroundColor: '#f8f9fa',
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  closeModalButton: {
+    backgroundColor: '#667eea',
+    color: 'white',
+    border: 'none',
+    padding: '0.8rem 2rem',
+    borderRadius: '8px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    transition: 'all 0.3s',
+  },
 };
 
 // Agregar animación CSS
@@ -558,6 +820,17 @@ styleSheet.textContent = `
   @keyframes spin {
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(-50px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
     }
   }
 
